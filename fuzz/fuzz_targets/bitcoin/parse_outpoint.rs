@@ -3,18 +3,7 @@ use bitcoin::transaction::OutPoint;
 use honggfuzz::fuzz;
 
 fn do_test(data: &[u8]) {
-    let lowercase: Vec<u8> = data
-        .iter()
-        .map(|c| match *c {
-            b'A' => b'a',
-            b'B' => b'b',
-            b'C' => b'c',
-            b'D' => b'd',
-            b'E' => b'e',
-            b'F' => b'f',
-            x => x,
-        })
-        .collect();
+    let lowercase: Vec<u8> = data.iter().map(u8::to_ascii_lowercase).collect();
     let data_str = match String::from_utf8(lowercase) {
         Err(_) => return,
         Ok(s) => s,
