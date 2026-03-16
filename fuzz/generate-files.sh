@@ -78,7 +78,7 @@ jobs:
         # We only get 20 jobs at a time, we probably don't want to go
         # over that limit with fuzzing because of the hour run time.
         fuzz_target: [
-$(for name in $(cargo fuzz list); do echo "          $name,"; done)
+$(for targetFile in $(listTargetFiles); do echo "          $(targetFileToName "$targetFile"),"; done)
         ]
     steps:
       - name: Install test dependencies

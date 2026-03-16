@@ -196,6 +196,13 @@ doc = false
 bench = false
 
 [[bin]]
+name = "p2p_arbitrary_network_message"
+path = "fuzz_targets/p2p/arbitrary_network_message.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
 name = "p2p_deserialize_addrv2"
 path = "fuzz_targets/p2p/deserialize_addrv2.rs"
 test = false

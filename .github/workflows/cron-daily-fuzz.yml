@@ -45,6 +45,7 @@ jobs:
           hashes_sha512,
           hashes_sha512_256,
           p2p_arbitrary_addrv2,
+          p2p_arbitrary_network_message,
           p2p_deserialize_addrv2,
           p2p_deserialize_raw_net_msg,
           units_arbitrary_weight,

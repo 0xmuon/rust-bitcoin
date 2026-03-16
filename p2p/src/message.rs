@@ -116,7 +116,12 @@ impl Encodable for CommandString {
     fn consensus_encode<W: Write + ?Sized>(&self, w: &mut W) -> Result<usize, io::Error> {
         let mut rawbytes = [0u8; 12];
         let strbytes = self.0.as_bytes();
-        debug_assert!(strbytes.len() <= 12);
+        if strbytes.len() > 12 {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "command string longer than 12 bytes",
+            ));
+        }
         rawbytes[..strbytes.len()].copy_from_slice(strbytes);
         rawbytes.consensus_encode(w)
     }
@@ -1434,7 +1439,18 @@ impl Encodable for V2NetworkMessage {
         }
 
         // Encode the payload.
-        len += self.payload.consensus_encode(writer)?;
+        //
+        // For `Unknown`, V2 decoding expects a length-prefixed byte vector (see
+        // `Vec::consensus_decode_from_finite_reader` in the V2 decoder). In V1 the payload is
+        // the remainder of the message and is not length-prefixed. So we special-case V2 here.
+        match self.payload {
+            NetworkMessage::Unknown { payload: ref data, .. } => {
+                len += data.consensus_encode(writer)?;
+            }
+            _ => {
+                len += self.payload.consensus_encode(writer)?;
+            }
+        }
 
         Ok(len)
     }
@@ -1918,7 +1934,16 @@ impl<'a> Arbitrary<'a> for InventoryPayload {
 #[cfg(feature = "arbitrary")]
 impl<'a> Arbitrary<'a> for CommandString {
     fn arbitrary(u: &mut Unstructured<'a>) -> arbitrary::Result<Self> {
-        Ok(Self(u.arbitrary::<String>()?.into()))
+        // Generate an ASCII command string of length at most 12 bytes to
+        // respect the protocol invariant for v1/v2 command names.
+        let len = u.int_in_range(0..=12usize)?;
+        let mut buf = Vec::with_capacity(len);
+        for _ in 0..len {
+            let b = u.int_in_range(0u8..=0x7f)?;
+            buf.push(b);
+        }
+        let s = unsafe { String::from_utf8_unchecked(buf) };
+        Ok(CommandString::try_from(s).expect("generated command length is <= 12"))
     }
 }
 

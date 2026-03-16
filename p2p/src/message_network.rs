@@ -700,7 +700,21 @@ impl<'a> Arbitrary<'a> for UserAgentVersion {
 #[cfg(feature = "arbitrary")]
 impl<'a> Arbitrary<'a> for UserAgent {
     fn arbitrary(u: &mut Unstructured<'a>) -> arbitrary::Result<Self> {
-        Ok(Self::new(u.arbitrary::<String>()?, &u.arbitrary()?))
+        // Generate a valid user agent without tripping invariant-checking panics.
+        //
+        // The regular constructors enforce that the client name does not contain
+        // '/', '(', ')' or ':' and that the total length is bounded. When fuzzing
+        // we don't want to treat violations of these *configuration* invariants
+        // as bugs, so we sanitize the arbitrary string and construct a
+        // non-standard user agent instead.
+        let raw: String = u.arbitrary()?;
+        let sanitized: String = raw
+            .chars()
+            .filter(|c| !matches!(c, '/' | '(' | ')' | ':'))
+            .take(UserAgent::MAX_USER_AGENT_LEN)
+            .collect();
+
+        Ok(Self::from_nonstandard(&sanitized))
     }
 }
 
